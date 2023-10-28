@@ -1,29 +1,41 @@
 const { createServer } = require("http");
 const fs = require("fs");
+const path = require("path");
 
 const PORT = process.env.PORT || 8080;
+const publicDirectory = path.join(__dirname, "public");
 
 createServer((req, res) => {
-  let page = fs.readFileSync("./pages/index.html");
-  res.setHeader("content-type", "text/html");
-  res.write(page);
-  res.write();
-  res.end();
+    let requestedFilePath = path.join(publicDirectory, req.url);
 
-  for( let file of fs.readdirSync("./pages")) {
-  }
+    // Default to index.html if no file specified
+    if (req.url === "/" || req.url === "") {
+        requestedFilePath = path.join(publicDirectory, "index.html");
+    }
 
-  // switch (req.url) {
-  //   case "/":
-  //     res.write(page);
-  //     res.end();
-  //     break;
-  //   case "/about":
-  //     res.end("You are on about page!");
-  //     break;
-  //   default:
-  //     res.statusCode = 404;
-  //     res.end("Page not found!");
-  // }
+    // Check if the file exists
+    if (fs.existsSync(requestedFilePath)) {
+        const fileExt = path.extname(requestedFilePath);
+
+        switch (fileExt) {
+            case ".html":
+                res.setHeader("Content-Type", "text/html");
+                break;
+            case ".css":
+                res.setHeader("Content-Type", "text/css");
+                break;
+            case ".js":
+                res.setHeader("Content-Type", "application/javascript");
+                break;
+            default:
+                res.setHeader("Content-Type", "text/plain");
+        }
+
+        const fileStream = fs.createReadStream(requestedFilePath);
+        fileStream.pipe(res);
+    } else {
+        res.writeHead(404, { "Content-Type": "text/html" });
+        res.end(path.join(publicDirectory, "404.html"));
+    }
 }).listen(PORT);
 
